@@ -1,39 +1,37 @@
 package main
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
-	"net/http"
 )
 
-type LocationResult struct {
-	Count    int    `json:"count"`
-	Next     string `json:"next"`
-	Previous any    `json:"previous"`
-	Results  []struct {
-		Name string `json:"name"`
-		URL  string `json:"url"`
-	} `json:"results"`
+func callbackMap(cfg *config) error {
+	resp, err := cfg.pokeapiClient.ListLocationArea(cfg.nextLocationAreaURL)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Location areas:")
+	for _, area := range resp.Results {
+		fmt.Printf(" - %s\n", area.Name)
+	}
+	cfg.nextLocationAreaURL = resp.Next
+	cfg.prevLocationAreaURL = resp.Previous
+	return nil
 }
 
-func mapCommand() error {
-	res, _ := http.Get("https://pokeapi.co/api/v2/location-area")
-
-	resBody, _ := io.ReadAll(res.Body)
-	locationResult := LocationResult{}
-
-	errorr := json.Unmarshal(resBody, &locationResult)
-
-	if errorr != nil {
-		fmt.Println(errorr)
-	} else {
-		for _, location := range locationResult.Results {
-			fmt.Println(location.Name)
-		}
+func callbackMapb(cfg *config) error {
+	if cfg.prevLocationAreaURL == nil {
+		return errors.New("you're on the first page")
 	}
-	fmt.Println(locationResult.Next)
-
+	resp, err := cfg.pokeapiClient.ListLocationArea(cfg.prevLocationAreaURL)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Location areas:")
+	for _, area := range resp.Results {
+		fmt.Printf(" - %s\n", area.Name)
+	}
+	cfg.nextLocationAreaURL = resp.Next
+	cfg.prevLocationAreaURL = resp.Previous
 	return nil
-
 }
